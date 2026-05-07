@@ -14,6 +14,7 @@ import {
 import { motion } from 'motion/react';
 
 export function TecnicoContratacion({ t, onBookDemo }: { t: any, onBookDemo: () => void }) {
+  const heroVideoUrl = 'https://videos.pexels.com/video-files/4496268/4496268-hd_1920_1080_25fps.mp4';
   const sectionReveal = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -92,12 +93,17 @@ export function TecnicoContratacion({ t, onBookDemo }: { t: any, onBookDemo: () 
         transition={{ duration: 0.75, ease: 'easeOut' }}
         className="py-14 px-4 relative overflow-hidden"
       >
-        <img
-          src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=2200&q=80"
-          alt="Infraestructura de IA"
+        <video
           className="absolute inset-0 h-full w-full object-cover"
-          loading="eager"
-        />
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+          poster="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=2200&q=80"
+        >
+          <source src={heroVideoUrl} type="video/mp4" />
+        </video>
         <div className="absolute inset-0 bg-slate-950/65" />
         <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 py-2 pr-4 relative z-10">

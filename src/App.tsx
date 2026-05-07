@@ -65,7 +65,7 @@ import {
   BookOpen,
   Fingerprint
 } from 'lucide-react';
-import { motion, AnimatePresence, useScroll, useSpring } from 'motion/react';
+import { motion, AnimatePresence, useScroll, useSpring, useReducedMotion } from 'motion/react';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { translations } from './translations';
 import { TecnicoContratacion } from './pages/TecnicoContratacion';
@@ -76,6 +76,7 @@ import { supabase } from './lib/supabase';
 
 function AppContent() {
   const { theme, toggleTheme } = useTheme();
+  const shouldReduceMotion = useReducedMotion();
   const { scrollYProgress } = useScroll();
   const smoothScrollProgress = useSpring(scrollYProgress, {
     stiffness: 130,
@@ -472,6 +473,38 @@ function AppContent() {
     </button>
   );
 
+  const InteractiveTiltCard = ({ children, className }: { children: React.ReactNode; className: string }) => {
+    const [tilt, setTilt] = useState({ x: 0, y: 0 });
+    const hasFinePointer = typeof window !== 'undefined' && window.matchMedia('(pointer:fine)').matches;
+
+    const handleMove = (event: React.MouseEvent<HTMLDivElement>) => {
+      if (shouldReduceMotion || !hasFinePointer) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const px = (event.clientX - rect.left) / rect.width;
+      const py = (event.clientY - rect.top) / rect.height;
+      setTilt({
+        x: (0.5 - py) * 8,
+        y: (px - 0.5) * 10
+      });
+    };
+
+    const handleLeave = () => setTilt({ x: 0, y: 0 });
+
+    return (
+      <motion.div
+        onMouseMove={handleMove}
+        onMouseLeave={handleLeave}
+        animate={shouldReduceMotion ? {} : { rotateX: tilt.x, rotateY: tilt.y }}
+        whileHover={shouldReduceMotion ? {} : { scale: 1.01 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 20, mass: 0.5 }}
+        style={{ transformStyle: 'preserve-3d' }}
+        className={className}
+      >
+        {children}
+      </motion.div>
+    );
+  };
+
   // --- VISTAS (PÁGINAS) ---
 
   const renderHome = () => (
@@ -483,6 +516,18 @@ function AppContent() {
       {/* HERO SECTION (Double Funnel) */}
       <section className="relative pt-20 pb-24 lg:pt-32 lg:pb-32 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-50/50 via-transparent to-indigo-50/50 dark:from-violet-900/20 dark:via-slate-950 dark:to-indigo-900/20 -z-10 transition-colors"></div>
+        <motion.div
+          aria-hidden="true"
+          className="absolute -top-24 -left-20 w-[28rem] h-[28rem] rounded-full bg-violet-400/25 dark:bg-violet-500/20 blur-[110px] pointer-events-none"
+          animate={shouldReduceMotion ? {} : { x: [0, 40, 0], y: [0, -20, 0], scale: [1, 1.08, 1] }}
+          transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <motion.div
+          aria-hidden="true"
+          className="absolute -bottom-24 right-0 w-[24rem] h-[24rem] rounded-full bg-fuchsia-400/20 dark:bg-indigo-500/25 blur-[100px] pointer-events-none"
+          animate={shouldReduceMotion ? {} : { x: [0, -36, 0], y: [0, 24, 0], scale: [1, 1.06, 1] }}
+          transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+        />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-12 gap-10 items-start">
@@ -505,9 +550,29 @@ function AppContent() {
               </div>
 
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.05]">
-                {t.home.title1}
+                {String(t.home.title1).split(' ').map((word: string, idx: number) => (
+                  <motion.span
+                    key={`title1-${idx}`}
+                    initial={{ opacity: 0, y: 18, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                    transition={{ duration: 0.35, delay: shouldReduceMotion ? 0 : idx * 0.05, ease: 'easeOut' }}
+                    className="inline-block mr-3"
+                  >
+                    {word}
+                  </motion.span>
+                ))}
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-500 dark:from-indigo-400 dark:to-violet-400">
-                  {t.home.title2}
+                  {String(t.home.title2).split(' ').map((word: string, idx: number) => (
+                    <motion.span
+                      key={`title2-${idx}`}
+                      initial={{ opacity: 0, y: 18, filter: 'blur(4px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      transition={{ duration: 0.35, delay: shouldReduceMotion ? 0 : 0.2 + idx * 0.05, ease: 'easeOut' }}
+                      className="inline-block mr-3"
+                    >
+                      {word}
+                    </motion.span>
+                  ))}
                 </span>
               </h1>
 
@@ -517,9 +582,19 @@ function AppContent() {
 
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <motion.button
-                  whileHover={{ y: -2, scale: 1.02 }}
+                  whileHover={shouldReduceMotion ? {} : { y: -2, scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   transition={{ type: 'spring', stiffness: 320, damping: 20 }}
+                  onMouseMove={(event) => {
+                    if (shouldReduceMotion || window.matchMedia('(pointer:coarse)').matches) return;
+                    const rect = event.currentTarget.getBoundingClientRect();
+                    const x = event.clientX - rect.left - rect.width / 2;
+                    const y = event.clientY - rect.top - rect.height / 2;
+                    event.currentTarget.style.transform = `translate(${x * 0.06}px, ${y * 0.06}px)`;
+                  }}
+                  onMouseLeave={(event) => {
+                    event.currentTarget.style.transform = 'translate(0px, 0px)';
+                  }}
                   onClick={() => setCurrentPage('diagnostico')}
                   className="bg-violet-600 hover:bg-violet-700 text-white px-7 py-4 rounded-xl font-bold transition-colors flex items-center justify-center gap-2"
                 >
@@ -544,7 +619,7 @@ function AppContent() {
               transition={{ duration: 0.5, delay: 0.15 }}
               className="lg:col-span-5"
             >
-              <div className="relative bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-7 shadow-xl">
+              <InteractiveTiltCard className="relative bg-white/90 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-[2rem] p-7 shadow-xl">
                 <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-violet-200/50 dark:bg-violet-500/20 blur-2xl"></div>
                 <div className="relative">
                   <div className="w-14 h-14 bg-violet-100 dark:bg-violet-900/50 text-violet-600 dark:text-violet-300 rounded-2xl flex items-center justify-center mb-5">
@@ -588,7 +663,7 @@ function AppContent() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </InteractiveTiltCard>
             </motion.div>
           </div>
         </div>
@@ -682,12 +757,8 @@ function AppContent() {
                 { icon: <FileSearch className="w-5 h-5 text-violet-600 dark:text-violet-300" />, title: t.home.docCard2Title, desc: t.home.docCard2Desc },
                 { icon: <Send className="w-5 h-5 text-fuchsia-600 dark:text-fuchsia-300" />, title: t.home.docCard3Title, desc: t.home.docCard3Desc }
               ].map((card, idx) => (
-                <motion.div
+                <InteractiveTiltCard
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
                   className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/70 p-5"
                 >
                   <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3">
@@ -695,7 +766,7 @@ function AppContent() {
                   </div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">{card.title}</h3>
                   <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{card.desc}</p>
-                </motion.div>
+                </InteractiveTiltCard>
               ))}
             </div>
 
