@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { CheckCircle2, ArrowRight, Sparkles, Shield, Target, Zap, HelpCircle, MessageCircle, ChevronDown, ChevronUp, Landmark, Building2, GraduationCap, BarChart3, Calendar, Cpu, XCircle, MinusCircle } from 'lucide-react';
+import { sectionEnter } from '../lib/sectionEnter';
 
 export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onBookDemo: () => void, onContactClick: () => void }) {
   const tp = t.pricingPage;
   const [openFaq, setOpenFaq] = useState<string | null>(null);
+  const reduce = !!useReducedMotion();
+  const trustDirs = ['l', 'r', 'bl', 'br'] as const;
+  const phaseDirs = ['tl', 'tr', 'bl', 'br'] as const;
+  const faqDirs = ['l', 'r', 'bl', 'br', 't', 'b'] as const;
 
   return (
     <motion.div
@@ -56,19 +61,16 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
         
         {/* Top Badges from Image */}
         <div className="flex flex-col items-center gap-4 mb-12">
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+          <motion.div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-blue/5 dark:bg-brand-blue/10 border border-brand-blue/10 dark:border-brand-blue/20 text-brand-blue dark:text-blue-300 text-xs font-bold tracking-wide shadow-sm"
+            {...sectionEnter(reduce, 't', 0, 0.22)}
           >
             <Shield className="w-3.5 h-3.5" />
             {t.home.badge}
           </motion.div>
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+          <motion.div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-emerald/5 dark:bg-brand-emerald/10 border border-brand-emerald/10 dark:border-brand-emerald/20 text-brand-emerald dark:text-emerald-400 text-xs font-bold tracking-wide shadow-sm"
+            {...sectionEnter(reduce, 't', 0.08, 0.22)}
           >
             <MessageCircle className="w-3.5 h-3.5" />
             {t.home.platformBadge}
@@ -77,11 +79,7 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
 
         {/* Header Section */}
         <div className="text-center max-w-4xl mx-auto mb-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
+          <motion.div {...sectionEnter(reduce, 'scale', 0.04, 0.14)}>
             <div className="rounded-3xl overflow-hidden border border-brand-blue/20 mb-8 shadow-xl">
               <img src="https://images.unsplash.com/photo-1484557052118-f32bd25b45b5?auto=format&fit=crop&w=1800&q=80" alt="Equipo y estrategia IA" className="w-full h-56 object-cover" loading="lazy" />
             </div>
@@ -99,10 +97,9 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
         {/* Trust Badges / Social Proof - Floating Glass Modules */}
         <div className="mb-32">
           <div className="max-w-6xl mx-auto">
-            <motion.p 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
+            <motion.p
               className="text-center text-[10px] font-bold tracking-[0.4em] text-brand-blue/60 dark:text-brand-blue/60 mb-16 uppercase"
+              {...sectionEnter(reduce, 'b', 0, 0.2)}
             >
               {tp.trustTitle}
             </motion.p>
@@ -115,11 +112,8 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
               ].map((item, i) => (
                 <motion.div
                   key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.15, duration: 0.6 }}
-                  whileHover={{ y: -10, scale: 1.02 }}
+                  {...sectionEnter(reduce, trustDirs[i % 4], i * 0.1, 0.22)}
+                  whileHover={reduce ? {} : { y: -10, scale: 1.02 }}
                   className="glass-brand rounded-[2.5rem] p-8 flex flex-col items-center text-center gap-6 group cursor-default relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-brand-blue/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -142,10 +136,10 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
 
         {/* Fases del Servei */}
         <div className="mb-32">
-          <div className="text-center mb-16">
+          <motion.div className="text-center mb-16" {...sectionEnter(reduce, 't', 0, 0.18)}>
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">{tp.phasesTitle}</h2>
             <p className="text-lg text-slate-600 dark:text-slate-400">{tp.phasesSubtitle}</p>
-          </div>
+          </motion.div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
@@ -170,12 +164,9 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
                 desc: tp.phase4Desc
               }
             ].map((phase, i) => (
-              <motion.div 
+              <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+                {...sectionEnter(reduce, phaseDirs[i % 4], i * 0.08, 0.2)}
                 className="glass-brand p-8 rounded-[2.5rem] relative overflow-hidden group hover:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all duration-500"
               >
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-blue to-brand-emerald transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-700" />
@@ -191,18 +182,13 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
 
         {/* Pricing Cards */}
         <div className="mb-32">
-          <div className="text-center mb-16">
+          <motion.div className="text-center mb-16" {...sectionEnter(reduce, 'b', 0, 0.18)}>
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">{tp.pricingTitle}</h2>
             <p className="text-lg text-slate-600 dark:text-slate-400">{tp.pricingSubtitle}</p>
-          </div>
+          </motion.div>
 
           {/* Quick Purchase Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="max-w-4xl mx-auto mb-12"
-          >
+          <motion.div className="max-w-4xl mx-auto mb-12" {...sectionEnter(reduce, 'scale', 0.05, 0.16)}>
             <div className="glass-card flex flex-col items-center gap-6 rounded-3xl p-6 shadow-sm ring-1 ring-blue-400/20 dark:ring-blue-500/25 md:flex-row md:p-8">
               <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-blue-600/20">
                 <Zap className="w-8 h-8 text-white" />
@@ -232,10 +218,8 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
             </div>
 
             {/* Card 1: Charla */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+            <motion.div
+              {...sectionEnter(reduce, 'l', 0, 0.2)}
               className="glass-brand rounded-[2.5rem] p-8 flex flex-col h-full relative z-10 hover:shadow-[0_0_40px_rgba(59,130,246,0.1)] hover:-translate-y-1 transition-all duration-300"
             >
               <div className="mb-8">
@@ -268,11 +252,8 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
             </motion.div>
 
             {/* Card 2: 1 Pliego */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
+            <motion.div
+              {...sectionEnter(reduce, 'scale', 0.08, 0.22)}
               className="glass-brand rounded-[2.5rem] p-8 flex flex-col h-full relative z-10 hover:shadow-[0_0_40px_rgba(16,185,129,0.15)] hover:-translate-y-1 transition-all duration-300 border border-brand-blue/20"
             >
               <div className="mb-8">
@@ -321,11 +302,8 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
             </motion.div>
 
             {/* Card 3: Pack 10 (Most Popular) */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
+            <motion.div
+              {...sectionEnter(reduce, 'r', 0.12, 0.22)}
               className="glass-brand rounded-[2.5rem] p-8 border-2 border-brand-emerald flex flex-col h-full relative lg:scale-105 z-10 hover:shadow-[0_0_50px_rgba(16,185,129,0.2)] transition-all duration-500 group"
             >
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-brand-blue to-brand-emerald text-white px-8 py-2.5 rounded-full text-[10px] font-black tracking-[0.2em] shadow-xl flex items-center gap-2 uppercase z-20 whitespace-nowrap">
@@ -396,21 +374,19 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
 
         {/* Comparison Section: Why PliegoFácil.ai? */}
         <div className="mb-32">
-          <div className="text-center mb-16">
+          <motion.div className="text-center mb-16" {...sectionEnter(reduce, 't', 0, 0.18)}>
             <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tight">
               {tp.comparison.title}
             </h2>
             <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
               {tp.comparison.subtitle}
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {/* Option 1: Traditional */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
+              {...sectionEnter(reduce, 'l', 0, 0.2)}
               className="glass-brand rounded-[2.5rem] p-8 border border-slate-200 dark:border-white/5 flex flex-col relative group"
             >
               <div className="mb-8">
@@ -463,10 +439,7 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
 
             {/* Option 2: Consultancy */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
+              {...sectionEnter(reduce, 'b', 0.08, 0.2)}
               className="glass-brand rounded-[2.5rem] p-8 border border-slate-200 dark:border-white/5 flex flex-col relative group"
             >
               <div className="mb-8">
@@ -519,10 +492,7 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
 
             {/* Option 3: PliegoFácil.ai (Highlighted) */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
+              {...sectionEnter(reduce, 'r', 0.14, 0.2)}
               className="glass-brand rounded-[2.5rem] p-8 border-2 border-brand-emerald/40 flex flex-col relative group lg:scale-105 z-20 shadow-[0_0_50px_rgba(0,223,129,0.15)]"
             >
               <div className="absolute inset-0 bg-gradient-to-b from-brand-emerald/10 to-transparent rounded-[2.5rem] pointer-events-none" />
@@ -584,9 +554,9 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
 
         {/* FAQ Section */}
         <div className="max-w-4xl mx-auto mb-32">
-          <div className="text-center mb-16">
+          <motion.div className="text-center mb-16" {...sectionEnter(reduce, 'scale', 0, 0.18)}>
             <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight">{tp.faqTitle}</h2>
-          </div>
+          </motion.div>
           
           <div className="space-y-12">
             {(tp.faqCategories || [
@@ -599,7 +569,7 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
                 ]
               }
             ]).map((category: any, catIndex: number) => (
-              <div key={catIndex} className="space-y-6">
+              <motion.div key={catIndex} className="space-y-6" {...sectionEnter(reduce, 'bl', catIndex * 0.06, 0.16)}>
                 <div className="flex items-center gap-3 mb-6">
                   <div className="h-px bg-brand-emerald/20 flex-grow" />
                   <h3 className="text-sm font-black text-brand-emerald uppercase tracking-[0.3em] px-4">
@@ -612,9 +582,10 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
                   {category.items.map((faq: any, i: number) => {
                     const globalIndex = `${catIndex}-${i}`;
                     return (
-                      <div 
+                      <motion.div
                         key={i}
                         className="glass-brand rounded-2xl overflow-hidden border-brand-emerald/10 hover:border-brand-emerald/30 transition-all duration-300"
+                        {...sectionEnter(reduce, faqDirs[(catIndex * 3 + i) % 6], i * 0.05, 0.12)}
                       >
                         <button
                           onClick={() => setOpenFaq(openFaq === globalIndex ? null : globalIndex)}
@@ -646,11 +617,11 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
                             </motion.div>
                           )}
                         </AnimatePresence>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -663,7 +634,10 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
         <div className="absolute inset-0 bg-grid-brand opacity-10" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-12">
+          <motion.div
+            className="flex flex-col md:flex-row items-center justify-between gap-12"
+            {...sectionEnter(reduce, 't', 0.06, 0.2)}
+          >
             <div className="max-w-2xl text-center md:text-left">
               <h3 className="text-4xl md:text-5xl font-black text-gradient-brand mb-6 tracking-tight">
                 {tp.ctaText}
@@ -683,7 +657,7 @@ export function PricingServices({ t, onBookDemo, onContactClick }: { t: any, onB
               <Calendar className="w-6 h-6" />
               {tp.ctaButtonFinal}
             </motion.a>
-          </div>
+          </motion.div>
         </div>
       </div>
     </motion.div>

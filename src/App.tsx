@@ -30,11 +30,8 @@ import {
   Loader2,
   LogOut,
   ExternalLink,
-  Linkedin,
-  Facebook,
-  Youtube,
-  Instagram,
   X,
+  Menu,
   Target,
   Sparkles,
   List,
@@ -74,6 +71,11 @@ import { CasosDeUso } from './pages/CasosDeUso';
 import EfficiencyCalculator from './components/EfficiencyCalculator';
 import { supabase } from './lib/supabase';
 import { GlobalVideoBackdrop } from './components/GlobalVideoBackdrop';
+import { HomeEntradaSplash } from './components/HomeEntradaSplash';
+import { sectionEnter } from './lib/sectionEnter';
+
+/** Persistido: el splash de entrada a la home solo la primera vez (por navegador). */
+const HOME_ENTRADA_SPLASH_SEEN_KEY = 'caioexperts_home_entrada_splash_seen';
 
 function AppContent() {
   const { theme, toggleTheme } = useTheme();
@@ -90,6 +92,7 @@ function AppContent() {
   });
 
   const [showLangMenu, setShowLangMenu] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => {
     const path = window.location.pathname;
     if (path === '/caio-as-a-service' || path === '/soluciones/tecnico-contratacion') return 'caio-service';
@@ -103,7 +106,47 @@ function AppContent() {
     if (path === '/cookies') return 'cookies';
     return 'home';
   });
+  const [homeSplashDismissed, setHomeSplashDismissed] = useState(() => {
+    try {
+      return window.localStorage.getItem(HOME_ENTRADA_SPLASH_SEEN_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
   const [expandedMod, setExpandedMod] = useState<number | null>(null);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileNavOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileNavOpen]);
+
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const mq = window.matchMedia('(min-width: 768px)');
+    const closeIfDesktop = () => {
+      if (mq.matches) setMobileNavOpen(false);
+    };
+    mq.addEventListener('change', closeIfDesktop);
+    closeIfDesktop();
+    return () => mq.removeEventListener('change', closeIfDesktop);
+  }, [mobileNavOpen]);
 
   // Update document title
   useEffect(() => {
@@ -177,6 +220,46 @@ function AppContent() {
   const [demoErrorMessage, setDemoErrorMessage] = useState('');
 
   const t = translations[lang as keyof typeof translations] || translations['ES'];
+
+  const homeSplashBlocking =
+    currentPage === 'home' && !homeSplashDismissed && !shouldReduceMotion;
+  const showTopNav =
+    currentPage !== 'home' ||
+    homeSplashDismissed ||
+    !!shouldReduceMotion;
+  const homeContentHidden = shouldReduceMotion
+    ? { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }
+    : { opacity: 0, y: 56, scale: 0.99, filter: 'blur(6px)' };
+  const homeContentShown = { opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' };
+
+  const mainNavItems: { key: string; label: string }[] = [
+    { key: 'home', label: 'Inicio' },
+    { key: 'caio-service', label: 'CAIO as a Service' },
+    { key: 'resultados', label: 'Resultados' },
+    { key: 'como-trabajamos', label: 'Como trabajamos' },
+    { key: 'sobre-nosotros', label: 'Sobre nosotros' },
+    { key: 'faq', label: 'FAQ' },
+    { key: 'diagnostico', label: 'Diagnostico' }
+  ];
+
+  const mobileNavListVariants = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: shouldReduceMotion ? 0 : 0.055,
+        delayChildren: shouldReduceMotion ? 0 : 0.04
+      }
+    }
+  };
+
+  const mobileNavItemVariants = {
+    hidden: shouldReduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: -14 },
+    show: {
+      opacity: 1,
+      x: 0,
+      transition: { duration: 0.28, ease: [0.22, 1, 0.36, 1] as const }
+    }
+  };
 
   const AnimatedMetricValue = ({ value, className }: { value: string; className: string }) => {
     const [display, setDisplay] = useState(value);
@@ -2099,11 +2182,13 @@ function AppContent() {
     );
   };
 
-  const renderContacto = () => (
+  const renderContacto = () => {
+    const hm = !!shouldReduceMotion;
+    return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen pt-20">
-      <section className="py-16 px-4">
+      <motion.section className="py-16 px-4" {...sectionEnter(hm, 'b', 0, 0.18)}>
         <div className="max-w-7xl mx-auto grid lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8 py-2 pr-4">
+          <motion.div className="lg:col-span-8 py-2 pr-4" {...sectionEnter(hm, 'l', 0.06, 0.22)}>
             <div className="glass-card mb-4 inline-flex items-center rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-[0.14em] text-slate-900 dark:text-white">
               Diagnostico
             </div>
@@ -2114,8 +2199,8 @@ function AppContent() {
             <p className="text-lg text-slate-600 dark:text-slate-300 max-w-4xl">
               Esta es la llamada para ordenar prioridades, eliminar ruido y definir un plan realista de ejecucion.
             </p>
-          </div>
-          <div className="glass-card lg:col-span-4 p-8">
+          </motion.div>
+          <motion.div className="glass-card lg:col-span-4 p-8" {...sectionEnter(hm, 'r', 0.1, 0.22)}>
             <h2 className="text-xl font-black mb-5">CTA a calendario</h2>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-5">
               Sin compromiso. Sesion ejecutiva enfocada a negocio.
@@ -2129,13 +2214,13 @@ function AppContent() {
               Reservar en calendario
               <ArrowRight className="w-4 h-4" />
             </a>
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="py-10 px-4">
+      <motion.section className="py-10 px-4" {...sectionEnter(hm, 'tr', 0, 0.2)}>
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-8">
-          <div className="glass-card p-8">
+          <motion.div className="glass-card p-8" {...sectionEnter(hm, 'l', 0.05)}>
             <h2 className="text-2xl font-black mb-5">Que incluye el diagnostico</h2>
             <div className="space-y-3">
               {[
@@ -2150,8 +2235,8 @@ function AppContent() {
                 </div>
               ))}
             </div>
-          </div>
-          <div className="glass-card p-8">
+          </motion.div>
+          <motion.div className="glass-card p-8" {...sectionEnter(hm, 'r', 0.08)}>
             <h2 className="text-2xl font-black mb-5">Que obtiene tu equipo</h2>
             <div className="space-y-3">
               {[
@@ -2166,12 +2251,12 @@ function AppContent() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
         </div>
-      </section>
+      </motion.section>
 
-      <section className="py-10 px-4">
-        <div className="glass-card mx-auto max-w-7xl p-8">
+      <motion.section className="py-10 px-4" {...sectionEnter(hm, 'bl', 0, 0.18)}>
+        <motion.div className="glass-card mx-auto max-w-7xl p-8" {...sectionEnter(hm, 'scale', 0.06)}>
           <h2 className="text-3xl font-black mb-8">Que analizamos en la sesion</h2>
           <div className="grid md:grid-cols-4 gap-5">
             {[
@@ -2180,18 +2265,22 @@ function AppContent() {
               { title: 'Capacidad', desc: 'Equipo, herramientas y nivel de adopcion real.' },
               { title: 'Impacto', desc: 'Areas donde el retorno puede ser mas rapido.' }
             ].map((item, i) => (
-              <div key={i} className="glass-card glass-card--sm p-5">
+              <motion.div
+                key={i}
+                className="glass-card glass-card--sm p-5"
+                {...sectionEnter(hm, (['t', 'b', 'l', 'r'] as const)[i], i * 0.06)}
+              >
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2">Bloque {i + 1}</p>
                 <h3 className="text-xl font-black mb-2">{item.title}</h3>
                 <p className="text-sm text-slate-600 dark:text-slate-300">{item.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </div>
-      </section>
+        </motion.div>
+      </motion.section>
 
-      <section className="py-20 px-4">
-        <div className="glass-card mx-auto max-w-5xl p-10 text-center">
+      <motion.section className="py-20 px-4" {...sectionEnter(hm, 'b', 0, 0.22)}>
+        <motion.div className="glass-card mx-auto max-w-5xl p-10 text-center" {...sectionEnter(hm, 'scale', 0.08)}>
           <h2 className="text-4xl md:text-5xl font-black mb-5 leading-[0.95]">Empieza facil: una llamada, un plan claro.</h2>
           <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 max-w-3xl mx-auto">
             Objetivo de esta pagina: convertir visitas en llamadas cualificadas.
@@ -2205,15 +2294,18 @@ function AppContent() {
             Agendar diagnostico
             <ArrowRight className="w-5 h-5" />
           </a>
-        </div>
-      </section>
+        </motion.div>
+      </motion.section>
     </motion.div>
-  );
+    );
+  };
 
-  const renderLegal = () => (
+  const renderLegal = () => {
+    const hm = !!shouldReduceMotion;
+    return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex justify-between items-center">
+        <motion.div className="mb-8 flex justify-between items-center" {...sectionEnter(hm, 't', 0, 0.15)}>
           <button 
             onClick={() => setCurrentPage('home')}
             className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center gap-2"
@@ -2223,9 +2315,9 @@ function AppContent() {
           <span className="glass-card inline-flex rounded-full px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300">
             {t.legalPage.lastUpdated}
           </span>
-        </div>
+        </motion.div>
 
-        <div className="glass-card prose prose-slate max-w-none rounded-3xl p-8 md:p-12 dark:prose-invert">
+        <motion.div className="glass-card prose prose-slate max-w-none rounded-3xl p-8 md:p-12 dark:prose-invert" {...sectionEnter(hm, 'scale', 0.05, 0.12)}>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-8">{t.legalPage.title}</h1>
           
           <h2 className="text-xl font-bold text-green-700 dark:text-green-500 mt-8 mb-4">{t.legalPage.idTitle}</h2>
@@ -2287,24 +2379,27 @@ function AppContent() {
 
           <h2 className="text-xl font-bold text-green-700 dark:text-green-500 mt-8 mb-4">{t.legalPage.lawTitle}</h2>
           <p>{t.legalPage.lawText}</p>
-        </div>
+        </motion.div>
 
-        <div className="mt-8 flex justify-center">
+        <motion.div className="mt-8 flex justify-center" {...sectionEnter(hm, 'b', 0.08, 0.15)}>
           <button 
             onClick={() => setCurrentPage('home')}
             className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center gap-2"
           >
             &larr; {t.legalPage.backToHome}
           </button>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
-  );
+    );
+  };
 
-  const renderPrivacy = () => (
+  const renderPrivacy = () => {
+    const hm = !!shouldReduceMotion;
+    return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex justify-between items-center">
+        <motion.div className="mb-8 flex justify-between items-center" {...sectionEnter(hm, 't', 0, 0.15)}>
           <button 
             onClick={() => setCurrentPage('home')}
             className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center gap-2"
@@ -2314,9 +2409,9 @@ function AppContent() {
           <span className="glass-card inline-flex rounded-full px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300">
             {t.privacy.lastUpdated}
           </span>
-        </div>
+        </motion.div>
 
-        <div className="glass-card prose prose-slate max-w-none rounded-3xl p-8 md:p-12 dark:prose-invert">
+        <motion.div className="glass-card prose prose-slate max-w-none rounded-3xl p-8 md:p-12 dark:prose-invert" {...sectionEnter(hm, 'scale', 0.05, 0.12)}>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-8">{t.privacy.title}</h1>
           
           {t.privacy.content.map((section, index) => (
@@ -2343,15 +2438,18 @@ function AppContent() {
               &larr; {t.privacy.backToHome}
             </button>
           </div>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
-  );
+    );
+  };
 
-  const renderCookies = () => (
+  const renderCookies = () => {
+    const hm = !!shouldReduceMotion;
+    return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-20">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex justify-between items-center">
+        <motion.div className="mb-8 flex justify-between items-center" {...sectionEnter(hm, 't', 0, 0.15)}>
           <button 
             onClick={() => setCurrentPage('home')}
             className="text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors flex items-center gap-2"
@@ -2361,9 +2459,9 @@ function AppContent() {
           <span className="glass-card inline-flex rounded-full px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300">
             {t.cookies.lastUpdated}
           </span>
-        </div>
+        </motion.div>
 
-        <div className="glass-card prose prose-slate max-w-none rounded-3xl p-8 md:p-12 dark:prose-invert">
+        <motion.div className="glass-card prose prose-slate max-w-none rounded-3xl p-8 md:p-12 dark:prose-invert" {...sectionEnter(hm, 'scale', 0.05, 0.12)}>
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-8" data-i18n="cookies.title">{t.cookies.title}</h1>
           
           {(t.cookies.sections as any[]).map((section, index) => (
@@ -2454,39 +2552,82 @@ function AppContent() {
               &larr; {t.cookies.backToHome}
             </button>
           </div>
-        </div>
+        </motion.div>
       </div>
     </motion.div>
-  );
+    );
+  };
 
-  const renderSobreNosotros = () => (
+  const renderSobreNosotros = () => {
+    const hm = !!shouldReduceMotion;
+    return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-20">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8">
-            <div className="rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 mb-6">
-              <img src="https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?auto=format&fit=crop&w=1800&q=80" alt="Equipo liderando transformacion IA" className="w-full h-56 object-cover" loading="lazy" />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-black mb-6">Sobre nosotros</h1>
-            <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8 max-w-4xl">
-              Somos un equipo que combina estrategia, operacion y ejecucion de IA para empresas que necesitan resultados,
-              no teoria. Trabajamos mano a mano con direccion para convertir la IA en ventaja competitiva real.
+        {/* Hero tipo editorial: texto izquierda, foto derecha (en movil: texto arriba, foto abajo) */}
+        <motion.div
+          className="mb-12 grid overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-700/80 dark:bg-slate-950/50 lg:grid-cols-2 lg:items-stretch"
+          {...sectionEnter(hm, 'scale', 0, 0.18)}
+        >
+          <motion.div
+            className="order-2 flex flex-col justify-center px-6 py-10 sm:px-10 lg:order-1 lg:px-12 lg:py-14"
+            {...sectionEnter(hm, 'l', 0.06, 0.2)}
+          >
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.28em] text-amber-700 dark:text-amber-400">
+              CAIOExperts.ai
             </p>
-            <div className="grid md:grid-cols-2 gap-4">
+            <h1 className="text-3xl font-black leading-[1.05] text-slate-900 dark:text-white sm:text-4xl md:text-5xl">
+              Sobre nosotros
+            </h1>
+            <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 dark:text-slate-300 sm:text-lg">
+              Somos un equipo que combina <strong className="font-semibold text-slate-800 dark:text-slate-100">estrategia</strong>,{' '}
+              <strong className="font-semibold text-slate-800 dark:text-slate-100">operacion</strong> y{' '}
+              <strong className="font-semibold text-slate-800 dark:text-slate-100">ejecucion de IA</strong> para empresas que necesitan
+              resultados, no teoria. Trabajamos mano a mano con direccion para convertir la IA en ventaja competitiva real.
+            </p>
+            <button
+              type="button"
+              onClick={() => setCurrentPage('diagnostico')}
+              className="mt-8 inline-flex w-fit items-center gap-2 rounded-md bg-white px-6 py-3.5 text-sm font-black uppercase tracking-wide text-slate-900 shadow-md ring-1 ring-slate-200/90 transition-colors hover:bg-slate-50 active:scale-[0.99] dark:bg-white dark:text-slate-900 dark:ring-slate-600 dark:hover:bg-slate-100"
+            >
+              Agendar diagnostico
+              <ArrowRight className="h-4 w-4 text-slate-900" />
+            </button>
+          </motion.div>
+          <motion.div
+            className="relative order-1 min-h-[260px] lg:order-2 lg:min-h-[min(420px,52vh)]"
+            {...sectionEnter(hm, 'r', 0.08, 0.22)}
+          >
+            <img
+              src="https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?auto=format&fit=crop&w=1800&q=80"
+              alt="Equipo liderando transformacion IA"
+              className="absolute inset-0 h-full w-full object-cover"
+              loading="lazy"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/25 to-transparent lg:bg-gradient-to-l" aria-hidden />
+          </motion.div>
+        </motion.div>
+
+        <div className="grid gap-8 lg:grid-cols-12">
+          <div className="lg:col-span-8">
+            <div className="grid gap-4 md:grid-cols-2">
               {[
                 { title: 'Quienes somos', desc: 'Perfil senior de negocio + tecnologia con enfoque ejecutivo.' },
                 { title: 'Experiencia', desc: 'Transformacion en empresas con necesidades reales de velocidad y foco.' },
                 { title: 'Enfoque', desc: 'No somos consultores de slides: ejecutamos con tu equipo.' },
                 { title: 'Filosofia', desc: 'Claridad, priorizacion y resultados medibles por encima del ruido.' }
               ].map((item, i) => (
-                <div key={i} className="glass-card p-5">
+                <motion.div
+                  key={i}
+                  className="glass-card p-5"
+                  {...sectionEnter(hm, (['tl', 'tr', 'bl', 'br'] as const)[i], i * 0.05)}
+                >
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2">{item.title}</p>
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{item.desc}</p>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-          <div className="glass-card lg:col-span-4 p-8">
+          <motion.div className="glass-card lg:col-span-4 p-8" {...sectionEnter(hm, 'r', 0.12, 0.22)}>
             <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80" alt="Sesion ejecutiva" className="w-full h-36 object-cover rounded-md mb-5" loading="lazy" />
             <h2 className="text-xl font-black mb-5">Confianza antes de hablar</h2>
             <div className="space-y-4 text-sm text-slate-700 dark:text-slate-300">
@@ -2498,22 +2639,100 @@ function AppContent() {
               Agendar diagnostico
               <ArrowRight className="w-4 h-4" />
             </button>
-          </div>
+          </motion.div>
         </div>
       </section>
     </motion.div>
-  );
+    );
+  };
 
-  const renderFaq = () => (
+  const renderFaq = () => {
+    const hm = !!shouldReduceMotion;
+    const cardDirs = ['l', 'r', 'bl', 'br', 'tl', 'tr'] as const;
+    const pp = t.pricingPage as {
+      pricingTitle: string;
+      pricingSubtitle: string;
+      taxNote: string;
+      card1Title: string;
+      card1Price: string;
+      card1Desc: string;
+      card2Title: string;
+      card2Price: string;
+      card2Desc: string;
+      card3Title: string;
+      card3Price: string;
+      card3Desc: string;
+      card3Badge?: string;
+      mostPopular?: string;
+    };
+    const pricingDetailCta: Record<string, string> = {
+      ES: 'Ver planes detallados',
+      EN: 'View detailed plans',
+      CA: 'Veure plans detallats',
+      FR: 'Voir les formules en detail',
+      DE: 'Alle Tarife ansehen',
+      PT: 'Ver planos detalhados',
+      ZH: '查看详细方案'
+    };
+    return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-20">
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 mb-6">
+        <motion.div className="rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 mb-6" {...sectionEnter(hm, 'tr', 0, 0.22)}>
           <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1800&q=80" alt="Soporte IA y decisiones" className="w-full h-56 object-cover" loading="lazy" />
-        </div>
-        <h1 className="text-4xl md:text-5xl font-black mb-6">FAQ</h1>
-        <p className="text-lg text-slate-600 dark:text-slate-300 mb-8">
-          Resolvemos las dudas clave para que puedas decidir sin friccion.
-        </p>
+        </motion.div>
+        <motion.div {...sectionEnter(hm, 'l', 0.06)}>
+          <h1 className="text-4xl md:text-5xl font-black mb-6">FAQ</h1>
+          <p className="text-lg text-slate-600 dark:text-slate-300 mb-8">
+            Resolvemos las dudas clave para que puedas decidir sin friccion.
+          </p>
+        </motion.div>
+
+        <motion.div className="mb-10" {...sectionEnter(hm, 'scale', 0.03, 0.18)}>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-1">{pp.pricingTitle}</h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{pp.pricingSubtitle}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mb-6">{pp.taxNote}</p>
+              <div className="grid gap-4 md:grid-cols-3">
+                {[
+                  { title: pp.card1Title, price: pp.card1Price, desc: pp.card1Desc },
+                  { title: pp.card2Title, price: pp.card2Price, desc: pp.card2Desc },
+                  {
+                    title: pp.card3Title,
+                    price: pp.card3Price,
+                    desc: pp.card3Desc,
+                    badge: pp.card3Badge || pp.mostPopular
+                  }
+                ].map((row, i) => (
+                  <motion.div
+                    key={i}
+                    className={`glass-card flex flex-col p-5 ${i === 2 ? 'ring-2 ring-amber-500/40 dark:ring-amber-400/35' : ''}`}
+                    {...sectionEnter(hm, (['l', 'b', 'r'] as const)[i], i * 0.06, 0.2)}
+                  >
+                    {row.badge && (
+                      <span className="mb-2 inline-flex w-fit rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-800 dark:text-amber-200">
+                        {row.badge}
+                      </span>
+                    )}
+                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{row.title}</p>
+                    <p className="mt-2 text-2xl font-black text-slate-900 dark:text-white">{row.price}</p>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{row.desc}</p>
+                  </motion.div>
+                ))}
+              </div>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentPage('preus-i-serveis');
+                    window.scrollTo(0, 0);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                >
+                  {pricingDetailCta[lang] || pricingDetailCta.ES}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
+              </div>
+            </motion.div>
+
         <div className="space-y-4">
           {[
             ['Precio', 'Trabajamos en un rango habitual de 5k-20k/mes segun alcance y nivel de implicacion.'],
@@ -2523,32 +2742,38 @@ function AppContent() {
             ['Necesito equipo tecnico interno', 'No necesariamente. Adaptamos el ritmo al equipo que ya tengas.'],
             ['Y si ya hacemos cosas con IA', 'Mejor: ordenamos, priorizamos y aceleramos lo que realmente da retorno.']
           ].map(([q, a], i) => (
-            <div key={i} className="glass-card p-5">
+            <motion.div key={i} className="glass-card p-5" {...sectionEnter(hm, cardDirs[i % cardDirs.length], i * 0.04)}>
               <p className="font-black text-slate-900 dark:text-white mb-2">{q}</p>
               <p className="text-sm text-slate-600 dark:text-slate-300">{a}</p>
-            </div>
+            </motion.div>
           ))}
         </div>
-        <div className="mt-8">
+        <motion.div className="mt-8" {...sectionEnter(hm, 'scale', 0.1)}>
           <button onClick={() => setCurrentPage('diagnostico')} className="px-6 py-3 rounded-xl font-bold inline-flex items-center gap-2">
             Resolverlo en una llamada
             <ArrowRight className="w-4 h-4" />
           </button>
-        </div>
+        </motion.div>
       </section>
     </motion.div>
-  );
+    );
+  };
 
-  const renderComoTrabajamos = () => (
+  const renderComoTrabajamos = () => {
+    const hm = !!shouldReduceMotion;
+    const dirs = ['l', 'r', 'bl', 'tr'] as const;
+    return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="py-20">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 mb-6">
+        <motion.div className="rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 mb-6" {...sectionEnter(hm, 't', 0, 0.22)}>
           <img src="https://images.unsplash.com/photo-1516321497487-e288fb19713f?auto=format&fit=crop&w=1800&q=80" alt="Proceso de implementacion IA" className="w-full h-56 object-cover" loading="lazy" />
-        </div>
-        <h1 className="text-4xl md:text-5xl font-black mb-4">Como trabajamos</h1>
-        <p className="text-lg text-slate-600 dark:text-slate-300 mb-10 max-w-3xl">
-          Proceso simple para empezar rapido: Diagnostico, Roadmap, Implementacion y Escalado.
-        </p>
+        </motion.div>
+        <motion.div {...sectionEnter(hm, 'r', 0.06)}>
+          <h1 className="text-4xl md:text-5xl font-black mb-4">Como trabajamos</h1>
+          <p className="text-lg text-slate-600 dark:text-slate-300 mb-10 max-w-3xl">
+            Proceso simple para empezar rapido: Diagnostico, Roadmap, Implementacion y Escalado.
+          </p>
+        </motion.div>
         <div className="grid md:grid-cols-2 gap-6">
           {[
             { step: '01', title: 'Diagnostico', desc: 'Detectamos oportunidades, bloqueos y prioridades.', image: '/images/Portada2.webp' },
@@ -2556,25 +2781,26 @@ function AppContent() {
             { step: '03', title: 'Implementacion', desc: 'Acompañamos ejecucion para que las iniciativas salgan.', image: '/images/Portada4.jpg' },
             { step: '04', title: 'Escalado', desc: 'Escalamos lo que funciona con KPIs de negocio.', image: '/images/Portada5.jpg' }
           ].map((item, i) => (
-            <div key={i} className="glass-card overflow-hidden rounded-xl">
+            <motion.div key={i} className="glass-card overflow-hidden rounded-xl" {...sectionEnter(hm, dirs[i], i * 0.06)}>
               <img src={item.image} alt={item.title} className="w-full h-44 object-cover" referrerPolicy="no-referrer" />
               <div className="p-6">
                 <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400 mb-2">Paso {item.step}</p>
                 <h2 className="text-2xl font-black mb-2">{item.title}</h2>
                 <p className="text-slate-600 dark:text-slate-300">{item.desc}</p>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
-        <div className="mt-8">
+        <motion.div className="mt-8" {...sectionEnter(hm, 'b', 0.12)}>
           <button onClick={() => setCurrentPage('diagnostico')} className="px-6 py-3 rounded-xl font-bold inline-flex items-center gap-2">
             Empezar con diagnostico
             <ArrowRight className="w-4 h-4" />
           </button>
-        </div>
+        </motion.div>
       </section>
     </motion.div>
-  );
+    );
+  };
 
   const renderDemoModal = () => (
     <AnimatePresence>
@@ -2755,13 +2981,15 @@ function AppContent() {
     </AnimatePresence>
   );
 
-  const renderHomeV2 = () => (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative pb-24 text-slate-900 dark:text-slate-100">
+  const renderHomeV2 = () => {
+    const hm = !!shouldReduceMotion;
+    return (
+    <motion.div initial={{ opacity: hm ? 1 : 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative pb-24 text-slate-900 dark:text-slate-100">
       <motion.section
-        initial={{ opacity: 0, y: 22 }}
+        initial={hm ? false : { opacity: 0, y: 48 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.65, ease: 'easeOut' }}
+        transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 overflow-hidden border-b border-white/10"
       >
         <div className="absolute inset-0 bg-slate-950/35" />
@@ -2810,7 +3038,7 @@ function AppContent() {
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-28">
           <div className="grid items-center gap-10 lg:grid-cols-12">
-            <motion.div initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.55 }} className="lg:col-span-8">
+            <motion.div initial={hm ? false : { opacity: 0, x: -44, y: 8 }} whileInView={{ opacity: 1, x: 0, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.62, ease: 'easeOut', delay: 0.04 }} className="lg:col-span-8">
               <p className="glass-card mb-6 inline-flex items-center px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
                 CAIOExperts.ai | Chief AI Officer as a Service
               </p>
@@ -2843,10 +3071,10 @@ function AppContent() {
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={hm ? false : { opacity: 0, x: 48, y: -12 }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={{ once: true, amount: 0.25 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
+              transition={{ duration: 0.65, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
               className="lg:col-span-4"
             >
               <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 250, damping: 20 }} className="glass-card p-6">
@@ -2875,33 +3103,44 @@ function AppContent() {
       </motion.section>
 
       <motion.section
-        initial={{ opacity: 0, y: 22 }}
-        whileInView={{ opacity: 1, y: 0 }}
+        initial={hm ? false : { opacity: 0, x: -36 }}
+        whileInView={{ opacity: 1, x: 0 }}
         viewport={{ once: true, amount: 0.2 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
+        transition={{ duration: 0.58, ease: 'easeOut' }}
         className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14"
       >
         <div className="grid md:grid-cols-3 gap-4">
           {[
             {
               text: 'Cada mes sin estrategia de IA es ventaja para tu competencia.',
-              image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80'
+              image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=1200&q=80',
+              from: 'l' as const
             },
             {
               text: 'La IA sin liderazgo solo multiplica coste y desorden.',
-              image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80'
+              image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80',
+              from: 'b' as const
             },
             {
               text: 'Si no decides ahora, en 12 meses vas a llegar tarde.',
-              image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80'
+              image: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80',
+              from: 'r' as const
             }
           ].map((item, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={
+                hm
+                  ? false
+                  : item.from === 'l'
+                    ? { opacity: 0, x: -32, y: 0 }
+                    : item.from === 'r'
+                      ? { opacity: 0, x: 32, y: 0 }
+                      : { opacity: 0, x: 0, y: 36 }
+              }
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ delay: i * 0.08, duration: 0.4 }}
+              transition={{ delay: i * 0.1, duration: 0.48, ease: 'easeOut' }}
               whileHover={{ y: -4 }}
               className="glass-card p-5"
             >
@@ -2912,9 +3151,22 @@ function AppContent() {
         </div>
       </motion.section>
 
-      <motion.section initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.6, ease: 'easeOut' }} className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <motion.section
+        initial={hm ? false : { opacity: 0, y: -28 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.55, ease: 'easeOut' }}
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+      >
         <div className="grid lg:grid-cols-2 gap-6">
-          <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className="glass-card p-7">
+          <motion.div
+            initial={hm ? false : { opacity: 0, x: -40, rotate: -1 }}
+            whileInView={{ opacity: 1, x: 0, rotate: 0 }}
+            viewport={{ once: true, amount: 0.22 }}
+            transition={{ duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -4, transition: { type: 'spring', stiffness: 260, damping: 20 } }}
+            className="glass-card p-7"
+          >
             <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=1400&q=80" alt="Desalineacion tecnologica" className="h-44 w-full object-cover rounded-md mb-5" loading="lazy" />
             <p className="text-xs uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300 font-bold mb-4">Problema</p>
             <h2 className="mb-5 text-3xl font-black text-slate-900 dark:text-white">El problema no es la IA. Es la falta de liderazgo.</h2>
@@ -2925,7 +3177,14 @@ function AppContent() {
               <li>- Dependencia de proveedores para decidir</li>
             </ul>
           </motion.div>
-          <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className="rounded-md border border-cyan-300/50 bg-gradient-to-br from-cyan-100/92 to-amber-100/92 p-7 shadow-md backdrop-blur-md dark:border-cyan-400/25 dark:from-cyan-900/45 dark:to-amber-900/35 dark:shadow-lg dark:backdrop-blur-lg">
+          <motion.div
+            initial={hm ? false : { opacity: 0, x: 44, rotate: 1 }}
+            whileInView={{ opacity: 1, x: 0, rotate: 0 }}
+            viewport={{ once: true, amount: 0.22 }}
+            transition={{ duration: 0.58, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -4, transition: { type: 'spring', stiffness: 260, damping: 20 } }}
+            className="rounded-md border border-cyan-300/50 bg-gradient-to-br from-cyan-100/92 to-amber-100/92 p-7 shadow-md backdrop-blur-md dark:border-cyan-400/25 dark:from-cyan-900/45 dark:to-amber-900/35 dark:shadow-lg dark:backdrop-blur-lg"
+          >
             <img src="https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1400&q=80" alt="Equipo ejecutando roadmap IA" className="h-44 w-full object-cover rounded-md mb-5" loading="lazy" />
             <p className="text-xs uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300 font-bold mb-4">Solucion</p>
             <h2 className="mb-5 text-3xl font-black text-slate-900 dark:text-white">Actuamos como tu Chief AI Officer</h2>
@@ -2939,7 +3198,13 @@ function AppContent() {
         </div>
       </motion.section>
 
-      <section className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <motion.section
+        initial={hm ? false : { opacity: 0, scale: 0.94, y: 24 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.25 }}
+        transition={{ duration: 0.62, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+      >
         <div className="glass-card p-7 ring-1 ring-cyan-400/25 dark:ring-cyan-400/35">
           <p className="text-xs uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300 font-bold mb-3">Categoria next step</p>
           <h3 className="mb-3 text-2xl font-black text-slate-900 dark:text-white md:text-3xl">
@@ -2952,24 +3217,59 @@ function AppContent() {
             No vendemos IA. Vendemos liderazgo externalizado para convertir IA en resultados.
           </p>
         </div>
-      </section>
+      </motion.section>
 
-      <motion.section initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.6, ease: 'easeOut' }} className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <h3 className="mb-6 text-3xl font-black text-slate-900 drop-shadow-sm dark:text-white">No somos consultores. Somos parte de tu equipo.</h3>
+      <motion.section
+        initial={hm ? false : { opacity: 0, x: 40 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.58, ease: 'easeOut' }}
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14"
+      >
+        <motion.h3
+          initial={hm ? false : { opacity: 0, y: -20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.35 }}
+          transition={{ duration: 0.45, ease: 'easeOut' }}
+          className="mb-6 text-3xl font-black text-slate-900 drop-shadow-sm dark:text-white"
+        >
+          No somos consultores. Somos parte de tu equipo.
+        </motion.h3>
         <div className="grid md:grid-cols-3 gap-5">
-          <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className="glass-card p-6">
+          <motion.div
+            initial={hm ? false : { opacity: 0, x: -36, y: 12 }}
+            whileInView={{ opacity: 1, x: 0, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.05 }}
+            whileHover={{ y: -4, transition: { type: 'spring', stiffness: 260, damping: 20 } }}
+            className="glass-card p-6"
+          >
             <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80" alt="Consultoria tradicional" className="h-32 w-full object-cover rounded-md mb-4" loading="lazy" />
             <p className="text-amber-600 dark:text-amber-300 text-xs font-bold mb-2">Consultoras</p>
             <p className="text-slate-700 dark:text-slate-300 text-sm mb-3">No: Recomendaciones y slides</p>
             <p className="font-semibold">Si: Direccion y ejecucion continua</p>
           </motion.div>
-          <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className="glass-card p-6">
+          <motion.div
+            initial={hm ? false : { opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.52, delay: 0.1 }}
+            whileHover={{ y: -4, transition: { type: 'spring', stiffness: 260, damping: 20 } }}
+            className="glass-card p-6"
+          >
             <img src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80" alt="Freelancer trabajando solo" className="h-32 w-full object-cover rounded-md mb-4" loading="lazy" />
             <p className="text-amber-600 dark:text-amber-300 text-xs font-bold mb-2">Freelancers</p>
             <p className="text-slate-700 dark:text-slate-300 text-sm mb-3">No: Soluciones sueltas</p>
             <p className="font-semibold">Si: Prioridades y roadmap de negocio</p>
           </motion.div>
-          <motion.div whileHover={{ y: -4 }} transition={{ type: 'spring', stiffness: 260, damping: 20 }} className="glass-card p-6">
+          <motion.div
+            initial={hm ? false : { opacity: 0, x: 36, y: 12 }}
+            whileInView={{ opacity: 1, x: 0, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            whileHover={{ y: -4, transition: { type: 'spring', stiffness: 260, damping: 20 } }}
+            className="glass-card p-6"
+          >
             <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1200&q=80" alt="Equipo interno tecnico" className="h-32 w-full object-cover rounded-md mb-4" loading="lazy" />
             <p className="text-amber-600 dark:text-amber-300 text-xs font-bold mb-2">CTO interno</p>
             <p className="text-slate-700 dark:text-slate-300 text-sm mb-3">No: Foco tecnico</p>
@@ -2978,8 +3278,22 @@ function AppContent() {
         </div>
       </motion.section>
 
-      <motion.section initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.6, ease: 'easeOut' }} className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
-        <h3 className="mb-6 text-center text-3xl font-black text-slate-900 drop-shadow-sm dark:text-white">FAQ de decision</h3>
+      <motion.section
+        initial={hm ? false : { opacity: 0, y: 36 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.2 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-14"
+      >
+        <motion.h3
+          initial={hm ? false : { opacity: 0, scale: 0.92 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true, amount: 0.4 }}
+          transition={{ duration: 0.48, ease: 'easeOut' }}
+          className="mb-6 text-center text-3xl font-black text-slate-900 drop-shadow-sm dark:text-white"
+        >
+          FAQ de decision
+        </motion.h3>
         <div className="space-y-4">
           {[
             ['¿Por que no contratar un CAIO full-time?', 'Porque necesitas liderazgo senior inmediato, con menos riesgo y sin coste fijo C-Level.'],
@@ -2988,10 +3302,18 @@ function AppContent() {
           ].map(([q, a], i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={
+                hm
+                  ? false
+                  : i === 0
+                    ? { opacity: 0, x: -28, y: 8 }
+                    : i === 1
+                      ? { opacity: 0, y: 32 }
+                      : { opacity: 0, x: 28, y: 8 }
+              }
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ delay: i * 0.08, duration: 0.35 }}
+              transition={{ delay: i * 0.08, duration: 0.42, ease: 'easeOut' }}
               whileHover={{ y: -3 }}
               className="glass-card p-5"
             >
@@ -3002,32 +3324,43 @@ function AppContent() {
         </div>
       </motion.section>
     </motion.div>
-  );
+    );
+  };
 
   return (
     <div className="relative flex min-h-screen flex-col bg-transparent font-sans text-slate-900 transition-colors duration-300 selection:bg-green-200 dark:text-slate-50 dark:selection:bg-green-900">
       
-      {/* NAVBAR — ancho completo */}
-      <nav className="sticky top-0 z-50 w-full border-b border-white/15 bg-white/70 shadow-sm backdrop-blur-xl transition-colors dark:border-white/10 dark:bg-slate-950/70">
-        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      {showTopNav && (
+        <motion.nav
+        key={currentPage === 'home' ? `home-nav-${homeSplashDismissed}` : `nav-${currentPage}`}
+        className="sticky top-0 z-50 relative w-full border-b border-white/15 bg-white/70 shadow-sm backdrop-blur-xl transition-colors dark:border-white/10 dark:bg-slate-950/70"
+        initial={
+          currentPage === 'home' && homeSplashDismissed && !shouldReduceMotion
+            ? { opacity: 0, y: -28 }
+            : false
+        }
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: 0.42,
+          ease: [0.22, 1, 0.36, 1],
+          delay:
+            currentPage === 'home' && homeSplashDismissed && !shouldReduceMotion
+              ? 0.08
+              : 0,
+        }}
+      >
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
           <Logo />
-          
-          <div className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-600 dark:text-slate-300">
-            {[
-              { key: 'home', label: 'Inicio' },
-              { key: 'caio-service', label: 'CAIO as a Service' },
-              { key: 'resultados', label: 'Resultados' },
-              { key: 'como-trabajamos', label: 'Como trabajamos' },
-              { key: 'sobre-nosotros', label: 'Sobre nosotros' },
-              { key: 'faq', label: 'FAQ' },
-              { key: 'diagnostico', label: 'Diagnostico' }
-            ].map((item) => (
+
+          <div className="hidden md:flex flex-1 justify-center items-center gap-6 text-sm font-semibold text-slate-600 dark:text-slate-300 min-w-0">
+            {mainNavItems.map((item) => (
               <motion.button
                 key={item.key}
-                whileHover={{ y: -2 }}
-                whileTap={{ scale: 0.98 }}
+                type="button"
+                whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+                whileTap={shouldReduceMotion ? undefined : { scale: 0.98 }}
                 onClick={() => setCurrentPage(item.key)}
-                className={`relative pb-1 transition-colors hover:text-amber-700 dark:hover:text-amber-300 ${currentPage === item.key ? 'text-amber-700 dark:text-amber-300' : ''}`}
+                className={`relative shrink-0 pb-1 transition-colors hover:text-amber-700 dark:hover:text-amber-300 ${currentPage === item.key ? 'text-amber-700 dark:text-amber-300' : ''}`}
               >
                 {item.label}
                 {currentPage === item.key && (
@@ -3041,24 +3374,31 @@ function AppContent() {
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Language Selector */}
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="relative">
-              <button 
-                onClick={() => setShowLangMenu(!showLangMenu)}
-                className="flex items-center gap-1 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+              <button
+                type="button"
+                onClick={() => {
+                  setShowLangMenu((v) => !v);
+                  setMobileNavOpen(false);
+                }}
+                className="flex items-center gap-1 rounded-md p-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white sm:p-0 sm:hover:bg-transparent sm:dark:hover:bg-transparent transition-colors"
               >
                 <Globe className="w-4 h-4" />
-                {lang}
+                <span className="hidden sm:inline">{lang}</span>
                 <ChevronDown className="w-3 h-3" />
               </button>
               {showLangMenu && (
-                <div className="absolute top-full right-0 mt-2 w-24 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden py-1 z-50">
+                <div className="absolute top-full right-0 z-[70] mt-2 w-24 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-800">
                   {['ES', 'EN', 'CA', 'FR', 'DE', 'PT', 'ZH'].map((l) => (
                     <button
                       key={l}
-                      onClick={() => { setLang(l); setShowLangMenu(false); }}
-                      className="w-full text-left px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                      type="button"
+                      onClick={() => {
+                        setLang(l);
+                        setShowLangMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
                     >
                       {l}
                     </button>
@@ -3067,23 +3407,121 @@ function AppContent() {
               )}
             </div>
 
-            {/* Dark Mode Toggle */}
-            <button 
+            <button
+              type="button"
               onClick={toggleTheme}
-              className="p-2.5 rounded-md text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition-colors"
+              className="rounded-md p-2.5 text-slate-500 transition-colors hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+              aria-label={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
             <button
+              type="button"
+              className="hidden min-[420px]:inline-flex shrink-0 rounded-md bg-slate-900 px-3 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-slate-800 hover:shadow-lg active:scale-95 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 sm:px-5 sm:py-2.5 sm:text-sm"
               onClick={() => setCurrentPage('diagnostico')}
-              className="shrink-0 rounded-md bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-slate-800 hover:shadow-lg active:scale-95 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
             >
               Agendar diagnostico
             </button>
+
+            <button
+              type="button"
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white/80 text-slate-800 shadow-sm transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900/80 dark:text-slate-100 dark:hover:bg-slate-800 md:hidden"
+              onClick={() => {
+                setMobileNavOpen((o) => !o);
+                setShowLangMenu(false);
+              }}
+              aria-expanded={mobileNavOpen}
+              aria-controls="mobile-main-nav"
+              aria-label={mobileNavOpen ? 'Cerrar menu' : 'Abrir menu'}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={mobileNavOpen ? 'close' : 'open'}
+                  initial={shouldReduceMotion ? false : { opacity: 0, rotate: -45, scale: 0.85 }}
+                  animate={{ opacity: 1, rotate: 0, scale: 1 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0, rotate: 45, scale: 0.85 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="flex items-center justify-center"
+                >
+                  {mobileNavOpen ? <X className="h-5 w-5" strokeWidth={2.25} /> : <Menu className="h-5 w-5" strokeWidth={2.25} />}
+                </motion.span>
+              </AnimatePresence>
+            </button>
           </div>
         </div>
-      </nav>
+
+        <AnimatePresence>
+          {mobileNavOpen && (
+            <>
+              <motion.div
+                key="mobile-nav-backdrop"
+                className="fixed inset-0 top-16 z-[60] bg-slate-950/55 backdrop-blur-[2px] md:hidden"
+                initial={shouldReduceMotion ? false : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.26 }}
+                onClick={() => setMobileNavOpen(false)}
+                aria-hidden
+              />
+              <motion.div
+                key="mobile-nav-panel"
+                id="mobile-main-nav"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Menu de navegacion"
+                className="fixed left-0 right-0 top-16 z-[61] max-h-[calc(100dvh-4rem)] overflow-y-auto border-b border-white/20 bg-white/95 px-3 py-4 shadow-2xl shadow-slate-900/10 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95 md:hidden"
+                initial={shouldReduceMotion ? false : { opacity: 0, y: -14 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={shouldReduceMotion ? undefined : { opacity: 0, y: -10 }}
+                transition={{ duration: shouldReduceMotion ? 0 : 0.32, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <motion.ul
+                  className="flex flex-col gap-1"
+                  initial="hidden"
+                  animate="show"
+                  variants={mobileNavListVariants}
+                >
+                  {mainNavItems.map((item) => (
+                    <motion.li key={item.key} variants={mobileNavItemVariants}>
+                      <button
+                        type="button"
+                        onClick={() => setCurrentPage(item.key)}
+                        className={`flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left text-[15px] font-semibold transition-colors active:scale-[0.99] ${
+                          currentPage === item.key
+                            ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
+                            : 'text-slate-800 hover:bg-slate-100 dark:text-slate-100 dark:hover:bg-slate-800/80'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        {currentPage === item.key && (
+                          <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.6)]" />
+                        )}
+                      </button>
+                    </motion.li>
+                  ))}
+                </motion.ul>
+                <motion.div
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: shouldReduceMotion ? 0 : 0.2, duration: 0.28 }}
+                  className="mt-3 border-t border-slate-200/80 pt-3 dark:border-white/10"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage('diagnostico')}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3.5 text-sm font-bold text-white shadow-md dark:bg-white dark:text-slate-900"
+                  >
+                    Agendar diagnostico
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </motion.div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+        </motion.nav>
+      )}
 
       {/* MAIN CONTENT AREA */}
       <main className="relative flex flex-grow flex-col">
@@ -3097,7 +3535,47 @@ function AppContent() {
             transition={{ duration: 0.28, ease: 'easeOut' }}
             className="relative z-10 flex flex-grow flex-col"
           >
-            {currentPage === 'home' && renderHomeV2()}
+            {currentPage === 'home' && (
+              <>
+                <HomeEntradaSplash
+                  open={homeSplashBlocking}
+                  onDismiss={() => {
+                    setHomeSplashDismissed(true);
+                    try {
+                      window.localStorage.setItem(HOME_ENTRADA_SPLASH_SEEN_KEY, '1');
+                    } catch {
+                      /* modo privado / storage deshabilitado */
+                    }
+                  }}
+                  shouldReduceMotion={!!shouldReduceMotion}
+                />
+                <motion.div
+                  initial={false}
+                  animate={
+                    homeSplashDismissed || shouldReduceMotion ? homeContentShown : homeContentHidden
+                  }
+                  transition={{
+                    duration: shouldReduceMotion ? 0 : 0.88,
+                    delay: shouldReduceMotion ? 0 : homeSplashDismissed ? 0.1 : 0,
+                    ease: [0.16, 1, 0.3, 1],
+                    opacity: {
+                      duration: shouldReduceMotion ? 0 : 0.65,
+                      delay: shouldReduceMotion ? 0 : homeSplashDismissed ? 0.06 : 0
+                    },
+                    filter: {
+                      duration: shouldReduceMotion ? 0 : 0.6,
+                      delay: shouldReduceMotion ? 0 : homeSplashDismissed ? 0.04 : 0
+                    }
+                  }}
+                  aria-hidden={homeSplashBlocking}
+                  className={
+                    homeSplashBlocking ? 'pointer-events-none flex flex-grow select-none flex-col' : 'flex flex-grow flex-col'
+                  }
+                >
+                  {renderHomeV2()}
+                </motion.div>
+              </>
+            )}
             {currentPage === 'como-trabajamos' && renderComoTrabajamos()}
             {currentPage === 'resultados' && (
               <CasosDeUso 
@@ -3171,22 +3649,6 @@ function AppContent() {
               className="hover:text-slate-900 dark:hover:text-white transition-colors"
             >
               {t.footer.cookies}
-            </button>
-          </div>
-
-          {/* SOCIAL MEDIA BUTTONS */}
-          <div className="flex gap-4 items-center mt-6 md:mt-0">
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-300" aria-label="LinkedIn">
-              <Linkedin className="w-5 h-5" />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-300" aria-label="Facebook">
-              <Facebook className="w-5 h-5" />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-300" aria-label="YouTube">
-              <Youtube className="w-5 h-5" />
-            </button>
-            <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-300" aria-label="Instagram">
-              <Instagram className="w-5 h-5" />
             </button>
           </div>
         </div>
